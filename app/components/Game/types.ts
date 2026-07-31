@@ -46,7 +46,7 @@ export interface MonsterState {
 export type GameStatus = 'start' | 'countdown' | 'playing' | 'won' | 'lost';
 
 export interface PlayerProfile {
-  initials: string;
+  name: string;
 }
 
 export interface LeaderboardEntry extends PlayerProfile {

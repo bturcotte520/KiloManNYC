@@ -262,14 +262,20 @@ body {
 
 .arcade-leader-row {
   display: grid;
-  grid-template-columns: 52px 1fr auto auto;
-  gap: 14px;
+  grid-template-columns: 40px minmax(0, 1fr) auto auto;
+  gap: 10px;
   align-items: center;
   border-bottom: 2px dashed rgba(250, 204, 21, 0.45);
   padding-bottom: 8px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   font-size: 22px;
   font-weight: 900;
+}
+
+.arcade-leader-row span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .arcade-admin-button,
@@ -312,6 +318,21 @@ body {
   color: #fecaca;
   padding: 5px 10px;
   font-size: 14px;
+}
+
+.arcade-admin-link {
+  border: none;
+  background: none;
+  color: rgba(250, 204, 21, 0.35);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+.arcade-admin-link:hover {
+  color: rgba(250, 204, 21, 0.8);
 }
 
 .arcade-admin-input {

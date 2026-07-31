@@ -16,10 +16,15 @@ const GameContainer: React.FC = () => {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [countdown, setCountdown] = useState<number>(3);
   const lastLossHandledRef = useRef(false);
+  const quitStateRef = useRef({ score, turnBest, playerProfile, gameState });
 
   useEffect(() => {
     refreshLeaderboard();
   }, []);
+
+  useEffect(() => {
+    quitStateRef.current = { score, turnBest, playerProfile, gameState };
+  }, [score, turnBest, playerProfile, gameState]);
 
   const refreshLeaderboard = async () => {
     const response = await fetch('/api/scores');
@@ -81,6 +86,38 @@ const GameContainer: React.FC = () => {
     return true;
   };
 
+  const verifyAdmin = async (adminSecret: string) => {
+    const response = await fetch('/api/admin/verify', {
+      method: 'POST',
+      headers: { 'x-admin-secret': adminSecret },
+    });
+    return response.ok;
+  };
+
+  const archiveScores = async (adminSecret: string) => {
+    const response = await fetch('/api/admin/archive', {
+      method: 'POST',
+      headers: { 'x-admin-secret': adminSecret },
+    });
+    if (!response.ok) return false;
+
+    const body = await response.json() as { scores?: LeaderboardEntry[] };
+    setLeaderboard(body.scores ?? []);
+    return true;
+  };
+
+  const purgeScores = async (adminSecret: string) => {
+    const response = await fetch('/api/admin/purge', {
+      method: 'POST',
+      headers: { 'x-admin-secret': adminSecret },
+    });
+    if (!response.ok) return false;
+
+    const body = await response.json() as { scores?: LeaderboardEntry[] };
+    setLeaderboard(body.scores ?? []);
+    return true;
+  };
+
   const startTurn = (profile: PlayerProfile) => {
     setPlayerProfile(profile);
     setLivesRemaining(MAX_LIVES);
@@ -112,6 +149,41 @@ const GameContainer: React.FC = () => {
     setScore({ current: 0, best: 0, distance: 0 });
   };
 
+  // "qq" shortcut: save the current run's best score and return to the menu.
+  useEffect(() => {
+    const QUIT_KEY_WINDOW_MS = 600;
+    let lastQTime = 0;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code !== 'KeyQ') return;
+
+      const now = Date.now();
+      if (now - lastQTime > QUIT_KEY_WINDOW_MS) {
+        lastQTime = now;
+        return;
+      }
+      lastQTime = 0;
+      e.preventDefault();
+
+      const { score: currentScore, turnBest: currentTurnBest, playerProfile: currentProfile, gameState: currentGameState } = quitStateRef.current;
+      if (currentGameState === 'start') return;
+
+      const best = currentScore.current > currentTurnBest.current ? currentScore : currentTurnBest;
+      if (currentProfile) {
+        void saveLeaderboard({
+          ...currentProfile,
+          score: best.current,
+          distance: best.distance,
+        });
+      }
+      (document.activeElement as HTMLElement | null)?.blur();
+      setGameState('start');
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   return (
     <div className="relative w-full h-full bg-black overflow-hidden">
       <GameCanvas
@@ -132,6 +204,9 @@ const GameContainer: React.FC = () => {
         leaderboard={leaderboard}
         countdown={countdown}
         onDeleteScore={deleteLeaderboardScore}
+        onVerifyAdmin={verifyAdmin}
+        onArchiveScores={archiveScores}
+        onPurgeScores={purgeScores}
       />
     </div>
   );

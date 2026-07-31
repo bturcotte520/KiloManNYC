@@ -2,7 +2,7 @@ import postgres from 'postgres';
 
 export interface StoredScore {
   id: string;
-  initials: string;
+  name: string;
   score: number;
   distance: number;
   date: string;
@@ -21,14 +21,14 @@ function sql() {
 
 function normalizeScore(row: {
   id: string;
-  initials: string;
+  name: string;
   score: number;
   distance: number;
   date: Date | string;
 }): StoredScore {
   return {
     id: row.id,
-    initials: row.initials,
+    name: row.name,
     score: row.score,
     distance: row.distance,
     date: row.date instanceof Date ? row.date.toISOString() : row.date,
@@ -37,7 +37,7 @@ function normalizeScore(row: {
 
 export async function getTopScores() {
   const rows = await sql()<StoredScore[]>`
-    select id, initials, score, distance, date
+    select id, name, score, distance, date
     from scores
     order by score desc, date asc
     limit 10
@@ -45,11 +45,11 @@ export async function getTopScores() {
   return rows.map(normalizeScore);
 }
 
-export async function addScore(input: { initials: string; score: number; distance: number }) {
+export async function addScore(input: { name: string; score: number; distance: number }) {
   const rows = await sql()<StoredScore[]>`
-    insert into scores (initials, score, distance)
-    values (${input.initials.slice(0, 5).toUpperCase()}, ${input.score}, ${input.distance})
-    returning id, initials, score, distance, date
+    insert into scores (name, score, distance)
+    values (${input.name.slice(0, 20)}, ${input.score}, ${input.distance})
+    returning id, name, score, distance, date
   `;
   return normalizeScore(rows[0]);
 }
@@ -61,6 +61,25 @@ export async function deleteScore(id: string) {
     returning id
   `;
   return rows.length > 0;
+}
+
+export async function archiveCurrentScores() {
+  const client = sql();
+  await client.begin(async (tx) => {
+    await tx`
+      insert into score_archives (original_id, name, score, distance, date)
+      select id, name, score, distance, date from scores
+    `;
+    await tx`delete from scores`;
+  });
+}
+
+export async function purgeAllScores() {
+  const client = sql();
+  await client.begin(async (tx) => {
+    await tx`delete from scores`;
+    await tx`delete from score_archives`;
+  });
 }
 
 export function isAdminSecret(secret: string | null) {

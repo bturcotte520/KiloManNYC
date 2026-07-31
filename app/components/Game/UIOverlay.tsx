@@ -5,10 +5,11 @@ import TouchControls from './TouchControls';
 
 const MENU_EVENT_NAME = 'kiloman:menu-action';
 const MENU_NAV_EVENT_NAME = 'kiloman:menu-nav';
-const INITIAL_CHOICES = [' ', ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')];
-const INITIAL_SLOT_COUNT = 5;
+const NAME_MAX_LENGTH = 20;
 const DEATH_ACTION_DELAY_MS = 900;
 const VEGAS_BULB_COUNT = 40;
+
+type AdminActionType = 'archive' | 'purge';
 
 interface UIOverlayProps {
   gameState: GameStatus;
@@ -23,15 +24,9 @@ interface UIOverlayProps {
   leaderboard: LeaderboardEntry[];
   countdown: number;
   onDeleteScore: (id: string, adminSecret: string) => Promise<boolean>;
-}
-
-function nextLetter(letter: string, delta: number) {
-  const index = INITIAL_CHOICES.indexOf(letter);
-  return INITIAL_CHOICES[(index + delta + INITIAL_CHOICES.length) % INITIAL_CHOICES.length];
-}
-
-function isTextInputTarget(target: EventTarget | null) {
-  return target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement;
+  onVerifyAdmin: (adminSecret: string) => Promise<boolean>;
+  onArchiveScores: (adminSecret: string) => Promise<boolean>;
+  onPurgeScores: (adminSecret: string) => Promise<boolean>;
 }
 
 interface VegasBulbRingProps {
@@ -63,6 +58,57 @@ const VegasBulbRing: React.FC<VegasBulbRingProps> = ({ reverse = false, startOff
   </div>
 );
 
+interface ConfirmDialogProps {
+  title: string;
+  message: string;
+  confirmLabel: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+  busy: boolean;
+}
+
+const ConfirmDialog: React.FC<ConfirmDialogProps> = ({ title, message, confirmLabel, onConfirm, onCancel, busy }) => {
+  const cancelButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    // Default focus on Cancel so an accidental Enter/joystick press doesn't destroy data.
+    cancelButtonRef.current?.focus();
+  }, []);
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={title}
+      className="absolute inset-0 z-50 flex items-center justify-center bg-black/90 pointer-events-auto"
+    >
+      <div className="arcade-panel arcade-menu text-center max-w-lg w-full mx-4 p-8">
+        <h3 className="arcade-title text-3xl mb-4 text-red-400">{title}</h3>
+        <p className="arcade-copy mb-8">{message}</p>
+        <div className="flex justify-center gap-4">
+          <button
+            ref={cancelButtonRef}
+            type="button"
+            onClick={onCancel}
+            disabled={busy}
+            className="arcade-button disabled:opacity-50"
+          >
+            CANCEL
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={busy}
+            className="arcade-button arcade-delete-button disabled:opacity-50"
+          >
+            {busy ? 'WORKING...' : confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const UIOverlay: React.FC<UIOverlayProps> = ({
   gameState,
   onStartTurn,
@@ -76,35 +122,34 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
   leaderboard,
   countdown,
   onDeleteScore,
+  onVerifyAdmin,
+  onArchiveScores,
+  onPurgeScores,
 }) => {
-  const [initials, setInitials] = useState(['A', 'A', ' ', ' ', ' ']);
-  const [selectedInitial, setSelectedInitial] = useState(0);
+  const [name, setName] = useState('');
   const [deathActionReady, setDeathActionReady] = useState(true);
   const [adminMode, setAdminMode] = useState(false);
   const [adminSecret, setAdminSecret] = useState('');
   const [adminError, setAdminError] = useState('');
+  const [adminVerified, setAdminVerified] = useState(false);
+  const [adminBusy, setAdminBusy] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<AdminActionType | null>(null);
   const [controlExplainer, setControlExplainer] = useState<'joystick' | 'keyboard'>('joystick');
   const primaryActionRef = useRef<(() => void) | null>(null);
-  const initialsRef = useRef(initials);
-  const selectedInitialRef = useRef(selectedInitial);
+  const nextLifeButtonRef = useRef<HTMLButtonElement>(null);
+  const isDialogOpenRef = useRef(false);
 
   const hasLivesAfterDeath = gameState === 'lost' && livesRemaining > 0;
   const turnOver = gameState === 'lost' && livesRemaining === 0;
-  const enteredInitials = initials.join('').trim();
-  const canStart = enteredInitials.length >= 2;
+  const enteredName = name.trim();
+  const canStart = enteredName.length >= 2;
 
-  useEffect(() => {
-    initialsRef.current = initials;
-  }, [initials]);
-
-  useEffect(() => {
-    selectedInitialRef.current = selectedInitial;
-  }, [selectedInitial]);
+  isDialogOpenRef.current = confirmAction !== null;
 
   const startTurn = useCallback(() => {
     if (!canStart) return;
-    onStartTurn({ initials: enteredInitials });
-  }, [canStart, enteredInitials, onStartTurn]);
+    onStartTurn({ name: enteredName });
+  }, [canStart, enteredName, onStartTurn]);
 
   const deleteScore = async (id: string) => {
     setAdminError('');
@@ -114,10 +159,43 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
     }
   };
 
+  const verifyAdmin = async () => {
+    setAdminError('');
+    setAdminBusy(true);
+    const verified = await onVerifyAdmin(adminSecret);
+    setAdminBusy(false);
+    setAdminVerified(verified);
+    if (!verified) {
+      setAdminError('BAD ADMIN CODE');
+    }
+  };
+
+  const runAdminAction = async (action: AdminActionType) => {
+    setAdminBusy(true);
+    setAdminError('');
+    const ok = action === 'archive'
+      ? await onArchiveScores(adminSecret)
+      : await onPurgeScores(adminSecret);
+    setAdminBusy(false);
+    setConfirmAction(null);
+    if (!ok) {
+      setAdminError('ACTION FAILED');
+    }
+  };
+
   useEffect(() => {
     if (gameState === 'start') {
-      setSelectedInitial(0);
-      setInitials(['A', 'A', ' ', ' ', ' ']);
+      setName('');
+    }
+  }, [gameState]);
+
+  useEffect(() => {
+    if (gameState !== 'start') {
+      setAdminMode(false);
+      setAdminVerified(false);
+      setAdminSecret('');
+      setAdminError('');
+      setConfirmAction(null);
     }
   }, [gameState]);
 
@@ -132,6 +210,14 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
     return () => window.clearTimeout(timeoutId);
   }, [gameState]);
 
+  // Default-focus the primary action button on the life-lost screen so pressing
+  // Enter on the keyboard activates it immediately.
+  useEffect(() => {
+    if (gameState === 'lost' && deathActionReady) {
+      nextLifeButtonRef.current?.focus();
+    }
+  }, [gameState, deathActionReady]);
+
   useEffect(() => {
     if (gameState === 'start') {
       primaryActionRef.current = startTurn;
@@ -145,56 +231,39 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
   }, [deathActionReady, gameState, onContinue, onNewTurn, startTurn]);
 
   useEffect(() => {
-    const handleMenuAction = () => primaryActionRef.current?.();
-    const handleMenuNav = (event: Event) => {
-      if (gameState !== 'start') return;
-
-      const direction = (event as CustomEvent<{ direction: string }>).detail?.direction;
-      if (direction === 'left') {
-        setSelectedInitial((value) => Math.max(0, value - 1));
-      } else if (direction === 'right') {
-        setSelectedInitial((value) => Math.min(INITIAL_SLOT_COUNT - 1, value + 1));
-      } else if (direction === 'up' || direction === 'down') {
-        const delta = direction === 'up' ? 1 : -1;
-        const index = selectedInitialRef.current;
-        setInitials((value) => value.map((letter, i) => i === index ? nextLetter(letter, delta) : letter));
+    const handleMenuAction = () => {
+      // While a confirmation dialog is open, the joystick action button should
+      // activate whichever dialog button currently has focus, not the game's
+      // primary action (e.g. Start Game).
+      if (isDialogOpenRef.current) {
+        (document.activeElement as HTMLElement | null)?.click();
+        return;
       }
+      primaryActionRef.current?.();
     };
 
-    const handleInitialKeyDown = (event: KeyboardEvent) => {
-      if (gameState !== 'start') return;
-      if (isTextInputTarget(event.target)) return;
-
-      if (/^[a-z]$/i.test(event.key)) {
-        event.preventDefault();
-        const index = selectedInitialRef.current;
-        setInitials((value) => value.map((letter, i) => i === index ? event.key.toUpperCase() : letter));
-        setSelectedInitial((value) => Math.min(INITIAL_SLOT_COUNT - 1, value + 1));
-      } else if (event.key === 'Backspace' || event.key === 'Delete') {
-        event.preventDefault();
-        const index = selectedInitialRef.current;
-        setInitials((value) => value.map((letter, i) => i === index ? ' ' : letter));
-      } else if (event.key === 'ArrowLeft') {
-        event.preventDefault();
-        setSelectedInitial((value) => Math.max(0, value - 1));
-      } else if (event.key === 'ArrowRight') {
-        event.preventDefault();
-        setSelectedInitial((value) => Math.min(INITIAL_SLOT_COUNT - 1, value + 1));
-      } else if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
-        event.preventDefault();
-        const delta = event.key === 'ArrowUp' ? 1 : -1;
-        const index = selectedInitialRef.current;
-        setInitials((value) => value.map((letter, i) => i === index ? nextLetter(letter, delta) : letter));
+    const handleMenuNav = (event: Event) => {
+      if (isDialogOpenRef.current) {
+        const direction = (event as CustomEvent<{ direction: string }>).detail?.direction;
+        if (direction === 'left' || direction === 'right') {
+          const dialog = document.querySelector('[role="dialog"]');
+          const buttons = dialog ? Array.from(dialog.querySelectorAll('button')) : [];
+          if (buttons.length === 0) return;
+          const activeIndex = buttons.indexOf(document.activeElement as HTMLButtonElement);
+          const nextIndex = direction === 'left'
+            ? Math.max(0, activeIndex - 1)
+            : Math.min(buttons.length - 1, activeIndex + 1);
+          (buttons[nextIndex] as HTMLButtonElement)?.focus();
+        }
+        return;
       }
     };
 
     window.addEventListener(MENU_EVENT_NAME, handleMenuAction);
     window.addEventListener(MENU_NAV_EVENT_NAME, handleMenuNav as EventListener);
-    window.addEventListener('keydown', handleInitialKeyDown);
     return () => {
       window.removeEventListener(MENU_EVENT_NAME, handleMenuAction);
       window.removeEventListener(MENU_NAV_EVENT_NAME, handleMenuNav as EventListener);
-      window.removeEventListener('keydown', handleInitialKeyDown);
     };
   }, [gameState]);
 
@@ -204,7 +273,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
         <div className="arcade-panel p-5 text-yellow-300 min-w-72">
           <h1 className="arcade-title text-3xl mb-3">KILO MAN</h1>
           <div className="arcade-stat-grid">
-            <p>PLAYER {playerProfile?.initials ?? '---'}</p>
+            <p>PLAYER {playerProfile?.name ?? '---'}</p>
             <p>LIVES {'♥'.repeat(livesRemaining)}{'♡'.repeat(maxLives - livesRemaining)}</p>
             <p>SCORE {score.current.toLocaleString()}</p>
             <p>BEST {Math.max(turnBest.current, score.current).toLocaleString()}</p>
@@ -233,10 +302,18 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
             <p className="arcade-copy mb-6">
               LIVES LEFT {livesRemaining} • BEST RUN {Math.max(turnBest.current, score.current).toLocaleString()}
             </p>
-            <button onClick={onContinue} disabled={!deathActionReady} className="arcade-button disabled:opacity-50 disabled:translate-y-0 disabled:shadow-none">
+            <button
+              ref={nextLifeButtonRef}
+              onClick={onContinue}
+              disabled={!deathActionReady}
+              autoFocus
+              className="arcade-button disabled:opacity-50 disabled:translate-y-0 disabled:shadow-none"
+            >
               {hasLivesAfterDeath ? 'NEXT LIFE' : 'SAVE SCORE'}
             </button>
-            <p className="arcade-help mt-5">{deathActionReady ? 'PRESS A' : 'GET READY...'}</p>
+            <p className="arcade-help mt-5">
+              {deathActionReady ? 'On joystick, press A button. (or press Enter)' : 'GET READY...'}
+            </p>
           </div>
         </div>
       )}
@@ -258,24 +335,30 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
               <div className="vegas-title-script">in Vegas</div>
             </div>
 
-            <div className="grid lg:grid-cols-[minmax(0,1fr)_380px] gap-6">
+            <div className="grid lg:grid-cols-[minmax(0,1fr)_460px] gap-6">
               <div className="vegas-bulb-frame">
                 <VegasBulbRing startOffset={VEGAS_BULB_COUNT / 4} />
                 <div className="arcade-panel arcade-menu p-8 text-center h-full">
-                  <p className="arcade-copy text-2xl mb-8">ENTER 2-5 INITIALS</p>
+                  <p className="arcade-copy text-2xl mb-4">ENTER YOUR CHARACTER NAME</p>
+                  <p className="arcade-help mb-6">Up to {NAME_MAX_LENGTH} characters</p>
 
-                  <div className="flex justify-center gap-4 md:gap-7 mb-8" aria-label="Initial selector">
-                    {initials.map((letter, index) => (
-                      <button
-                        key={index}
-                        type="button"
-                        onClick={() => setSelectedInitial(index)}
-                        className={`arcade-initial ${selectedInitial === index ? 'arcade-initial--active' : ''}`}
-                        aria-label={`Initial ${index + 1}`}
-                      >
-                        {letter === ' ' ? '_' : letter}
-                      </button>
-                    ))}
+                  <div className="flex justify-center mb-8">
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(event) => setName(event.target.value.slice(0, NAME_MAX_LENGTH))}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') {
+                          event.preventDefault();
+                          startTurn();
+                        }
+                      }}
+                      maxLength={NAME_MAX_LENGTH}
+                      placeholder="CHARACTER NAME"
+                      autoFocus
+                      className="arcade-admin-input text-center text-2xl w-full max-w-xs"
+                      aria-label="Character name"
+                    />
                   </div>
 
                   <div className="arcade-instructions mb-8">
@@ -305,9 +388,9 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
                       </>
                     ) : (
                       <>
-                        <p>Type Letters: Change Initial</p>
-                        <p>Arrows: Move / Cycle</p>
-                        <p>Space: Start / Jump</p>
+                        <p>Type: Enter Character Name</p>
+                        <p>Enter: Start Game</p>
+                        <p>Space: Jump</p>
                       </>
                     )}
                   </div>
@@ -322,31 +405,17 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
                 <VegasBulbRing reverse startOffset={VEGAS_BULB_COUNT / 2} />
                 <div className="arcade-panel p-6 text-yellow-300 h-full">
                   <h2 className="arcade-title text-4xl mb-5 text-center">TOP SCORES</h2>
-                  <div className="mb-5 flex flex-col gap-3">
-                    <button type="button" onClick={() => setAdminMode((value) => !value)} className="arcade-admin-button">
-                      {adminMode ? 'CLOSE ADMIN' : 'ADMIN'}
-                    </button>
-                    {adminMode && (
-                      <input
-                        value={adminSecret}
-                        onChange={(event) => setAdminSecret(event.target.value)}
-                        type="password"
-                        placeholder="ADMIN CODE"
-                        className="arcade-admin-input"
-                      />
-                    )}
-                    {adminError && <p className="arcade-help text-center text-red-300">{adminError}</p>}
-                  </div>
+                  {adminError && <p className="arcade-help text-center text-red-300 mb-4">{adminError}</p>}
                   {leaderboard.length === 0 ? (
                     <p className="arcade-copy text-center">NO SCORES YET</p>
                   ) : (
                     <ol className="space-y-3">
                       {leaderboard.map((entry, index) => (
-                        <li key={`${entry.initials}-${entry.date}`} className="arcade-leader-row">
+                        <li key={`${entry.name}-${entry.date}`} className="arcade-leader-row">
                           <span>{String(index + 1).padStart(2, '0')}</span>
-                          <span>{entry.initials}</span>
+                          <span>{entry.name}</span>
                           <span>{entry.score.toLocaleString()}</span>
-                          {adminMode && (
+                          {adminMode && adminVerified && (
                             <button type="button" onClick={() => void deleteScore(entry.id)} className="arcade-delete-button">
                               DEL
                             </button>
@@ -358,6 +427,70 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
                 </div>
               </div>
             </div>
+
+            <div className="mt-4 flex flex-col items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setAdminMode((value) => {
+                  const next = !value;
+                  if (!next) {
+                    setAdminVerified(false);
+                    setAdminSecret('');
+                    setAdminError('');
+                  }
+                  return next;
+                })}
+                className="arcade-admin-link"
+              >
+                {adminMode ? 'close admin' : 'admin'}
+              </button>
+              {adminMode && !adminVerified && (
+                <div className="flex flex-col items-center gap-2">
+                  <input
+                    value={adminSecret}
+                    onChange={(event) => setAdminSecret(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        void verifyAdmin();
+                      }
+                    }}
+                    type="password"
+                    placeholder="ADMIN CODE"
+                    className="arcade-admin-input"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => void verifyAdmin()}
+                    disabled={adminBusy || adminSecret.length === 0}
+                    className="arcade-admin-button disabled:opacity-50"
+                  >
+                    {adminBusy ? 'CHECKING...' : 'UNLOCK ADMIN'}
+                  </button>
+                </div>
+              )}
+              {adminMode && adminVerified && (
+                <div className="flex flex-col items-center gap-2">
+                  <p className="arcade-help text-center text-green-300">ADMIN UNLOCKED</p>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setConfirmAction('archive')}
+                      className="arcade-admin-button"
+                    >
+                      SAVE &amp; CLEAR LEADERBOARD
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmAction('purge')}
+                      className="arcade-admin-button arcade-delete-button"
+                    >
+                      DELETE ALL HISTORY
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -367,13 +500,32 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
           <div className="arcade-panel arcade-menu p-8 text-center max-w-xl">
             <h2 className="arcade-title text-6xl mb-6 text-yellow-300">MISSION COMPLETE</h2>
             <p className="arcade-copy mb-8">OBJECTIVE SECURED</p>
-            <button onClick={onNewTurn} className="arcade-button">NEW GAME</button>
-            <p className="arcade-help mt-5">PRESS A</p>
+            <button onClick={onNewTurn} autoFocus className="arcade-button">NEW GAME</button>
+            <p className="arcade-help mt-5">On joystick, press A button. (or press Enter)</p>
           </div>
         </div>
       )}
 
+      {confirmAction && (
+        <ConfirmDialog
+          title={confirmAction === 'archive' ? 'SAVE & CLEAR LEADERBOARD?' : 'DELETE ALL HISTORY?'}
+          message={
+            confirmAction === 'archive'
+              ? 'This archives the current leaderboard and starts a fresh group of players. Archived scores are kept in history.'
+              : 'This permanently deletes every score, including archived history. This cannot be undone.'
+          }
+          confirmLabel={confirmAction === 'archive' ? 'SAVE & CLEAR' : 'DELETE ALL'}
+          busy={adminBusy}
+          onConfirm={() => void runAdminAction(confirmAction)}
+          onCancel={() => setConfirmAction(null)}
+        />
+      )}
+
       <TouchControls active={gameState === 'playing'} />
+
+      <p className="absolute bottom-2 right-3 text-gray-500 text-xs pointer-events-none select-none">
+        qq to quit
+      </p>
     </div>
   );
 };
