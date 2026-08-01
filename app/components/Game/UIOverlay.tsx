@@ -27,6 +27,8 @@ interface UIOverlayProps {
   onVerifyAdmin: (adminSecret: string) => Promise<boolean>;
   onArchiveScores: (adminSecret: string) => Promise<boolean>;
   onPurgeScores: (adminSecret: string) => Promise<boolean>;
+  muted: boolean;
+  onToggleMute: () => void;
 }
 
 interface VegasBulbRingProps {
@@ -125,6 +127,8 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
   onVerifyAdmin,
   onArchiveScores,
   onPurgeScores,
+  muted,
+  onToggleMute,
 }) => {
   const [name, setName] = useState('');
   const [deathActionReady, setDeathActionReady] = useState(true);
@@ -523,7 +527,17 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
 
       <TouchControls active={gameState === 'playing'} />
 
-      <p className="absolute bottom-2 right-3 text-gray-500 text-xs pointer-events-none select-none">
+      <button
+        type="button"
+        onClick={onToggleMute}
+        aria-label={muted ? 'Unmute music' : 'Mute music'}
+        aria-pressed={muted}
+        className="fixed top-3 right-3 arcade-mute-button text-xs pointer-events-auto select-none z-50"
+      >
+        {muted ? 'UNMUTE' : 'MUTE'}
+      </button>
+
+      <p className="absolute bottom-2 left-3 text-gray-500 text-xs pointer-events-none select-none">
         qq to quit
       </p>
     </div>

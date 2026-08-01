@@ -320,6 +320,28 @@ body {
   font-size: 14px;
 }
 
+.arcade-mute-button {
+  border: 1px solid rgba(250, 204, 21, 0.5);
+  background: rgba(15, 23, 42, 0.85);
+  color: rgba(250, 204, 21, 0.9);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  z-index: 50;
+}
+
+.arcade-mute-button:hover {
+  border-color: rgba(250, 204, 21, 0.95);
+  color: #fef3c7;
+}
+
+.arcade-mute-button:active {
+  transform: translateY(1px);
+}
+
 .arcade-admin-link {
   border: none;
   background: none;

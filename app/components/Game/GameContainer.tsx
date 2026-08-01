@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import GameCanvas from './GameCanvas';
 import UIOverlay from './UIOverlay';
+import { GameMusic } from '@/app/lib/music';
 import { GameStatus, LeaderboardEntry, PlayerProfile, ScoreState } from './types';
 
 const MAX_LIVES = 3;
@@ -17,6 +18,40 @@ const GameContainer: React.FC = () => {
   const [countdown, setCountdown] = useState<number>(3);
   const lastLossHandledRef = useRef(false);
   const quitStateRef = useRef({ score, turnBest, playerProfile, gameState });
+  const musicRef = useRef<GameMusic | null>(null);
+  const [muted, setMuted] = useState(false);
+
+  useEffect(() => {
+    return () => musicRef.current?.dispose();
+  }, []);
+
+  useEffect(() => {
+    if (!musicRef.current) musicRef.current = new GameMusic();
+    const music = musicRef.current;
+    // Music plays on the menu, countdown, gameplay, death, and win screens.
+    // It only fully stops if the game is unmounted (handled above).
+    if (gameState === 'lost' || gameState === 'won') {
+      music.stop();
+    } else if (gameState === 'start') {
+      music.start('menu');
+    } else {
+      music.start('game');
+    }
+  }, [gameState]);
+
+  useEffect(() => {
+    musicRef.current?.setMuted(muted);
+  }, [muted]);
+
+  useEffect(() => {
+    // Browsers block audio until a user gesture. Any click/tap anywhere
+    // in the game resumes the AudioContext so the music can actually play.
+    const resumeAudio = () => musicRef.current?.resume();
+    window.addEventListener('pointerdown', resumeAudio, true);
+    return () => window.removeEventListener('pointerdown', resumeAudio, true);
+  }, []);
+
+  const toggleMute = useCallback(() => setMuted((m) => !m), []);
 
   useEffect(() => {
     refreshLeaderboard();
@@ -207,6 +242,8 @@ const GameContainer: React.FC = () => {
         onVerifyAdmin={verifyAdmin}
         onArchiveScores={archiveScores}
         onPurgeScores={purgeScores}
+        muted={muted}
+        onToggleMute={toggleMute}
       />
     </div>
   );
