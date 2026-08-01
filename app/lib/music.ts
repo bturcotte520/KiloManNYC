@@ -87,6 +87,7 @@ export class GameMusic {
     this.muted = muted;
     if (this.masterGain && this.ctx) {
       this.fadeTarget = muted ? 0 : (this.mode === 'menu' ? 0.12 : 0.18);
+      this.startFade();
     }
   }
 
@@ -105,11 +106,11 @@ export class GameMusic {
 
       // Simple feedback delay for a spacious lounge reverb feel.
       this.delayNode = this.ctx.createDelay(1.0);
-      this.delayNode.delayTime.value = 0.26;
+      this.delayNode.delayTime.value = 0.28;
       this.delayFeedback = this.ctx.createGain();
-      this.delayFeedback.gain.value = 0.32;
+      this.delayFeedback.gain.value = 0.2;
       const delayWet = this.ctx.createGain();
-      delayWet.gain.value = 0.28;
+      delayWet.gain.value = 0.18;
 
       this.masterGain.connect(this.ctx.destination);
       this.masterGain.connect(this.delayNode);
@@ -136,7 +137,7 @@ export class GameMusic {
     }
     this.running = true;
     this.mode = mode;
-    this.fadeTarget = mode === 'menu' ? 0.12 : 0.18;
+    this.fadeTarget = this.muted ? 0 : (mode === 'menu' ? 0.12 : 0.18);
     this.startFade();
     this.nextNoteTime = ctx.currentTime + 0.06;
     this.currentBar = 0;
@@ -149,8 +150,9 @@ export class GameMusic {
     if (this.mode === mode) return;
     this.mode = mode;
     if (this.masterGain && this.ctx) {
-      const target = mode === 'menu' ? 0.12 : 0.18;
+      const target = this.muted ? 0 : (mode === 'menu' ? 0.12 : 0.18);
       this.fadeTarget = target;
+      this.startFade();
     }
   }
 
