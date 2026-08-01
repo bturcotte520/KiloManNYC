@@ -157,9 +157,12 @@ export class GameMusic {
   }
 
   stop() {
+    this.stopping = true;
     this.fadeTarget = 0;
     this.startFade();
   }
+
+  private stopping = false;
 
   private startFade() {
     if (this.fadeRaf !== null) return;
@@ -173,8 +176,9 @@ export class GameMusic {
       const diff = this.fadeTarget - cur;
       if (Math.abs(diff) < 0.001) {
         this.masterGain.gain.setValueAtTime(this.fadeTarget, now);
-        if (this.fadeTarget === 0) {
+        if (this.fadeTarget === 0 && this.stopping) {
           this.running = false;
+          this.stopping = false;
           if (this.schedulerId !== null) {
             clearTimeout(this.schedulerId);
             this.schedulerId = null;
