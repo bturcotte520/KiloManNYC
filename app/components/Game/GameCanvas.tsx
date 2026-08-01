@@ -822,6 +822,10 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onScor
 
     // --- PLAYER PHYSICS ---
     const spd = speedRef.current;
+    // Gravity scales with sqrt(speed) so jump arcs stay viable at low speeds.
+    // At 0.5x speed, gravity is ~0.71x (not 0.5x), giving more air-time relative
+    // to horizontal movement so the player can still clear gaps.
+    const gravitySpd = Math.sqrt(spd);
     
     // Horizontal Movement
     if (keys['ArrowLeft']) {
@@ -839,11 +843,12 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onScor
     if (player.vx < -CONFIG.maxSpeed * spd) player.vx = -CONFIG.maxSpeed * spd;
 
     // Gravity
-    player.vy += CONFIG.gravity * spd;
+    player.vy += CONFIG.gravity * gravitySpd;
 
-    // Jumping
+    // Jumping — jump force scales between sqrt(spd) and spd to preserve
+    // clearance: at low speed the jump is proportionally stronger.
     if (keys['Space'] && player.isGrounded) {
-      player.vy = CONFIG.baseJumpForce * spd;
+      player.vy = CONFIG.baseJumpForce * ((spd + gravitySpd) / 2);
       player.isGrounded = false;
       sfxRef.current?.jump();
     }
@@ -855,7 +860,9 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onScor
     maintainEndlessLevel(player.x);
 
     const autoScrollProgress = Math.min(1, player.x / 18000);
-    const autoScrollSpeed = AUTOSCROLL_START_SPEED + (AUTOSCROLL_MAX_SPEED - AUTOSCROLL_START_SPEED) * autoScrollProgress;
+    const baseAutoScroll = AUTOSCROLL_START_SPEED + (AUTOSCROLL_MAX_SPEED - AUTOSCROLL_START_SPEED) * autoScrollProgress;
+    // Auto-scroll scales with speed so the game stays proportionally fair.
+    const autoScrollSpeed = baseAutoScroll * spd;
     scrollXRef.current += autoScrollSpeed;
 
     // --- MONSTER LOGIC ---
