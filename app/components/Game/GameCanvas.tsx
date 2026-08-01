@@ -44,6 +44,7 @@ interface GameCanvasProps {
   gameState: GameStatus;
   setGameState: (status: GameStatus) => void;
   onScoreChange: (score: ScoreState) => void;
+  speedMultiplier: number;
 }
 
 interface ScorePopup {
@@ -54,7 +55,7 @@ interface ScorePopup {
   age: number;
 }
 
-const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onScoreChange }) => {
+const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onScoreChange, speedMultiplier }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const requestRef = useRef<number>(0);
   const frameCountRef = useRef<number>(0);
@@ -76,6 +77,9 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onScor
   }, []);
   
   // Game Constants
+  const speedRef = useRef(speedMultiplier);
+  speedRef.current = speedMultiplier;
+
   const CONFIG: GameConfig = {
     gravity: 0.66,
     friction: 0.85,
@@ -817,28 +821,29 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onScor
     frameCountRef.current++;
 
     // --- PLAYER PHYSICS ---
+    const spd = speedRef.current;
     
     // Horizontal Movement
     if (keys['ArrowLeft']) {
-      player.vx -= CONFIG.moveSpeed;
+      player.vx -= CONFIG.moveSpeed * spd;
       player.facing = -1;
     }
     if (keys['ArrowRight']) {
-      player.vx += CONFIG.moveSpeed;
+      player.vx += CONFIG.moveSpeed * spd;
       player.facing = 1;
     }
 
     // Friction & Limits
     player.vx *= CONFIG.friction;
-    if (player.vx > CONFIG.maxSpeed) player.vx = CONFIG.maxSpeed;
-    if (player.vx < -CONFIG.maxSpeed) player.vx = -CONFIG.maxSpeed;
+    if (player.vx > CONFIG.maxSpeed * spd) player.vx = CONFIG.maxSpeed * spd;
+    if (player.vx < -CONFIG.maxSpeed * spd) player.vx = -CONFIG.maxSpeed * spd;
 
     // Gravity
-    player.vy += CONFIG.gravity;
+    player.vy += CONFIG.gravity * spd;
 
     // Jumping
     if (keys['Space'] && player.isGrounded) {
-      player.vy = CONFIG.baseJumpForce;
+      player.vy = CONFIG.baseJumpForce * spd;
       player.isGrounded = false;
       sfxRef.current?.jump();
     }

@@ -20,6 +20,7 @@ const GameContainer: React.FC = () => {
   const quitStateRef = useRef({ score, turnBest, playerProfile, gameState });
   const musicRef = useRef<GameMusic | null>(null);
   const [muted, setMuted] = useState(false);
+  const [speedMultiplier, setSpeedMultiplier] = useState(1.0);
 
   useEffect(() => {
     return () => musicRef.current?.dispose();
@@ -225,6 +226,7 @@ const GameContainer: React.FC = () => {
         gameState={gameState}
         setGameState={setGameState}
         onScoreChange={setScore}
+        speedMultiplier={speedMultiplier}
       />
       <UIOverlay
         gameState={gameState}
@@ -244,6 +246,8 @@ const GameContainer: React.FC = () => {
         onPurgeScores={purgeScores}
         muted={muted}
         onToggleMute={toggleMute}
+        speedMultiplier={speedMultiplier}
+        onSpeedChange={setSpeedMultiplier}
       />
     </div>
   );

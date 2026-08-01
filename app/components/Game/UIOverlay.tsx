@@ -29,6 +29,8 @@ interface UIOverlayProps {
   onPurgeScores: (adminSecret: string) => Promise<boolean>;
   muted: boolean;
   onToggleMute: () => void;
+  speedMultiplier: number;
+  onSpeedChange: (value: number) => void;
 }
 
 interface VegasBulbRingProps {
@@ -129,6 +131,8 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
   onPurgeScores,
   muted,
   onToggleMute,
+  speedMultiplier,
+  onSpeedChange,
 }) => {
   const [name, setName] = useState('');
   const [deathActionReady, setDeathActionReady] = useState(true);
@@ -399,6 +403,26 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
                     )}
                   </div>
 
+                  <div className="arcade-speed-control mb-8">
+                    <label className="arcade-help mb-2 block text-center">
+                      SPEED: {speedMultiplier.toFixed(1)}x
+                    </label>
+                    <input
+                      type="range"
+                      min="0.5"
+                      max="2.0"
+                      step="0.1"
+                      value={speedMultiplier}
+                      onChange={(e) => onSpeedChange(parseFloat(e.target.value))}
+                      className="arcade-slider w-full"
+                      aria-label="Game speed"
+                    />
+                    <div className="flex justify-between text-xs arcade-help">
+                      <span>SLOW</span>
+                      <span>FAST</span>
+                    </div>
+                  </div>
+
                   <button onClick={startTurn} disabled={!canStart} className="arcade-button text-3xl disabled:opacity-50 disabled:translate-y-0 disabled:shadow-none">
                     START GAME
                   </button>
@@ -537,7 +561,21 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
         {muted ? 'UNMUTE' : 'MUTE'}
       </button>
 
-      <p className="absolute bottom-2 left-3 text-gray-500 text-xs pointer-events-none select-none">
+      <div className="fixed bottom-3 left-3 pointer-events-auto z-50 arcade-speed-hud">
+        <label className="arcade-help text-xs block mb-1">{speedMultiplier.toFixed(1)}x</label>
+        <input
+          type="range"
+          min="0.5"
+          max="2.0"
+          step="0.1"
+          value={speedMultiplier}
+          onChange={(e) => onSpeedChange(parseFloat(e.target.value))}
+          className="arcade-slider arcade-slider--small"
+          aria-label="Game speed"
+        />
+      </div>
+
+      <p className="absolute bottom-2 left-20 text-gray-500 text-xs pointer-events-none select-none">
         qq to quit
       </p>
     </div>
