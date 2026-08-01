@@ -874,7 +874,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onScor
         return;
       }
 
-      m.x += m.vx;
+      m.x += m.vx * spd;
       // Patrol Logic
       if (m.x <= m.patrolStart) {
         m.x = m.patrolStart;
