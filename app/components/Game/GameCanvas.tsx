@@ -1,5 +1,6 @@
 import React, { useCallback, useRef, useEffect } from 'react';
 import { GameStatus, PlayerState, GameConfig, LevelEntity, MonsterState, ScoreState } from './types';
+import { GameSFX } from '@/app/lib/sfx';
 
 const INPUT_EVENT_NAME = 'kiloman:input';
 const MENU_EVENT_NAME = 'kiloman:menu-action';
@@ -112,6 +113,12 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onScor
   const lastScorePublishFrameRef = useRef<number>(0);
   const updateRef = useRef<() => void>(() => {});
   const drawRef = useRef<(ctx: CanvasRenderingContext2D) => void>(() => {});
+  const sfxRef = useRef<GameSFX | null>(null);
+
+  useEffect(() => {
+    sfxRef.current = new GameSFX();
+    return () => { sfxRef.current?.dispose(); sfxRef.current = null; };
+  }, []);
 
   useEffect(() => {
     gameStateRef.current = gameState;
@@ -833,6 +840,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onScor
     if (keys['Space'] && player.isGrounded) {
       player.vy = CONFIG.baseJumpForce;
       player.isGrounded = false;
+      sfxRef.current?.jump();
     }
 
     // Apply Velocity
@@ -884,6 +892,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onScor
     const fallDeathY = cameraRef.current.y + (canvas?.height ?? dimensions.height) + FALL_DEATH_SCREEN_MARGIN;
     monstersRef.current = monstersRef.current.filter(m => !m.defeated || m.y < fallDeathY);
     if (player.y > fallDeathY) {
+      sfxRef.current?.death();
       setGameStateRef.current('lost');
       return;
     }
@@ -908,9 +917,11 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onScor
           m.vx = player.facing * 2;
           bonusScoreRef.current += MONSTER_POINTS;
           player.vy = CONFIG.baseJumpForce * 0.55;
+          sfxRef.current?.stomp();
           continue;
         }
 
+        sfxRef.current?.death();
         setGameStateRef.current('lost');
         return;
       }
@@ -933,10 +944,12 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onScor
           scorePopupsRef.current.push({ id: frameCountRef.current + entityIndex, x: entity.x + entity.w / 2, y: entity.y, value: chipValue, age: 0 });
           bonusScoreRef.current += chipValue;
           entitiesRef.current.splice(entityIndex, 1);
+          sfxRef.current?.collect();
           continue;
         }
 
         if (entity.type === 'hazard') {
+          sfxRef.current?.death();
           setGameStateRef.current('lost');
           return;
         }
@@ -960,6 +973,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onScor
           } else if (hittingBottom) {
             player.y = entity.y + entity.h;
             player.vy = 0;
+            sfxRef.current?.bonk();
           } else if (overlapX < overlapY && hittingLeftSide) {
             player.x = entity.x - player.width;
             player.vx = 0;
