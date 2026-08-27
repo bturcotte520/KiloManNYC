@@ -720,6 +720,32 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onScor
     const eyeDir = p.facing === 1 ? 4 : -4;
     ctx.fillRect(cx + eyeDir - 2, y + 8 + bob, 4, 4);
 
+    const hatY = y + bob;
+    ctx.fillStyle = '#14532d';
+    ctx.beginPath();
+    ctx.ellipse(cx, hatY + 5, 18, 5.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(cx, hatY - 4, 13, 11, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#31A824';
+    ctx.beginPath();
+    ctx.ellipse(cx, hatY + 5, 16, 4, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#43B02A';
+    ctx.beginPath();
+    ctx.ellipse(cx, hatY - 5, 11, 10, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#166534';
+    ctx.fillRect(cx - 11, hatY + 1, 22, 3);
+
+    ctx.fillStyle = 'rgba(187, 247, 208, 0.4)';
+    ctx.beginPath();
+    ctx.ellipse(cx - 3, hatY - 9, 4, 2.2, -0.4, 0, Math.PI * 2);
+    ctx.fill();
+
     ctx.restore();
   };
 

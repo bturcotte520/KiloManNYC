@@ -279,7 +279,10 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
     <div className="absolute inset-0 pointer-events-none flex flex-col justify-between p-6 arcade-root">
       <div className="flex justify-between items-start pointer-events-auto gap-4">
         <div className="arcade-panel p-5 text-yellow-300 min-w-72">
-          <h1 className="arcade-title text-3xl mb-3">KILO MAN</h1>
+          <div className="anaconda-logo-row mb-3">
+            <Image src="/anaconda-logo.svg" alt="Anaconda" width={42} height={42} className="anaconda-logo anaconda-logo--hud" />
+            <h1 className="arcade-title text-3xl">KILO MAN</h1>
+          </div>
           <div className="arcade-stat-grid">
             <p>PLAYER {playerProfile?.name ?? '---'}</p>
             <p>LIVES {'♥'.repeat(livesRemaining)}{'♡'.repeat(maxLives - livesRemaining)}</p>
@@ -338,6 +341,9 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
       {gameState === 'start' && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/95 pointer-events-auto overflow-y-auto py-8">
           <div className="max-w-6xl w-full mx-4">
+            <div className="anaconda-logo-home mb-4">
+              <Image src="/anaconda-logo.svg" alt="Anaconda" width={96} height={96} className="anaconda-logo anaconda-logo--home" />
+            </div>
             <div className="vegas-title-wrap mb-7 text-center">
               <h1 className="vegas-title-main">KILO MAN</h1>
               <div className="vegas-title-script">in Vegas</div>

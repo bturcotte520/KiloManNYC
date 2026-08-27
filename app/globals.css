@@ -109,6 +109,31 @@ body {
   text-shadow: 0 3px 0 #000, 0 0 18px rgba(234, 179, 8, 0.55);
 }
 
+.anaconda-logo-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.anaconda-logo-home {
+  display: flex;
+  justify-content: center;
+}
+
+.anaconda-logo {
+  display: block;
+  height: auto;
+  filter: drop-shadow(0 0 10px rgba(67, 176, 42, 0.55));
+}
+
+.anaconda-logo--hud {
+  width: 42px;
+}
+
+.anaconda-logo--home {
+  width: 96px;
+}
+
 .arcade-panel {
   border: 4px solid #facc15;
   border-radius: 18px;
