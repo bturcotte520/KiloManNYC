@@ -23,7 +23,6 @@ export default function Scoreboard() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [results, setResults] = useState<Results | null>(null);
-  const [updated, setUpdated] = useState<Date | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [refresh, setRefresh] = useState(0);
@@ -33,7 +32,6 @@ export default function Scoreboard() {
     let timer: ReturnType<typeof setTimeout>;
     let controller: AbortController;
     setResults(null);
-    setUpdated(null);
     setLoading(true);
     setError('');
 
@@ -45,19 +43,18 @@ export default function Scoreboard() {
         const response = await fetch(`/api/scores?${query}`, {
           cache: 'no-store', signal: controller.signal,
         });
-        if (!response.ok) throw new Error('Scores are temporarily unavailable. We will try again automatically.');
+        if (!response.ok) throw new Error('Scores unavailable');
         const data: Results = await response.json();
         if (!disposed) {
           if (page > 1 && page > Math.max(1, Math.ceil(data.total / data.pageSize))) {
             setPage(1);
           } else {
             setResults(data);
-            setUpdated(new Date());
             setError('');
           }
         }
       } catch {
-        if (!disposed) setError('Cannot reach the scoreboard. Showing the last available results, if any. Retrying automatically.');
+        if (!disposed) setError('Scores could not be updated.');
       } finally {
         clearTimeout(timeout);
         if (!disposed) {
@@ -85,26 +82,14 @@ export default function Scoreboard() {
             <span className={styles.route}>K</span>
             <span>KILO MAN <span className={styles.muted}>/ NYC</span></span>
           </Link>
-          <span className={styles.edition}>EVENT SCOREBOARD</span>
         </header>
-
-        <section className={styles.intro} aria-labelledby="scoreboard-title">
-          <p className={styles.eyebrow}>NEW YORK CITY / LIVE RANKINGS</p>
-          <h1 id="scoreboard-title">The city<br />keeps score<span>.</span></h1>
-          <p className={styles.description}>You played. Now watch the board. Find your name and follow the event rankings from wherever the day takes you.</p>
-          <div className={styles.status} role="status">
-            <span className={error ? styles.offline : styles.dot} />
-            {loading ? 'Connecting to the board...' : error ? 'Connection interrupted' : 'Connected / refreshes every 15 seconds'}
-            {updated && <span>Last update {updated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>}
-          </div>
-        </section>
 
         <section className={styles.board} aria-label="Event rankings">
           <div className={styles.toolbar}>
-            <div><h2>All aboard the leaderboard.</h2><p>Best run per turn. Every completed turn is listed.</p></div>
+            <h1>Scoreboard</h1>
             <div className={styles.search}>
-              <label htmlFor="player-search">Find your player name</label>
-              <input id="player-search" type="search" value={search} maxLength={20} placeholder="Search player name" onChange={(event) => { setSearch(event.target.value); setPage(1); }} />
+              <label htmlFor="player-search" className={styles.srOnly}>Search players</label>
+              <input id="player-search" type="search" value={search} maxLength={20} placeholder="Search players" onChange={(event) => { setSearch(event.target.value); setPage(1); }} />
             </div>
           </div>
 
@@ -125,21 +110,18 @@ export default function Scoreboard() {
                 ))}
               </tbody>
             </table>
-            {loading && <p className={styles.empty} role="status">Loading the latest scores...</p>}
-            {!loading && !error && results?.scores.length === 0 && <div className={styles.empty}><h3>{search.trim() ? 'No matching players.' : 'First stop: your name here.'}</h3><p>{search.trim() ? 'Try the name you entered at the event station.' : 'Scores appear here after players save a completed turn at the event.'}</p></div>}
+            {loading && <p className={styles.empty} role="status">Loading...</p>}
+            {!loading && !error && results?.scores.length === 0 && <p className={styles.empty}>{search.trim() ? 'No matching players.' : 'No scores yet.'}</p>}
           </div>
 
-          <div className={styles.pagination}>
-            <span>{results ? `${results.total.toLocaleString()} ${search.trim() ? 'matching ' : ''}turns` : 'Awaiting scores'} / Rank is event-wide</span>
+          {totalPages > 1 && <div className={styles.pagination}>
             <nav aria-label="Scoreboard pages">
               <button disabled={page <= 1 || loading} onClick={() => setPage((value) => value - 1)}>Previous</button>
               <span>{page} / {totalPages}</span>
               <button disabled={page >= totalPages || loading} onClick={() => setPage((value) => value + 1)}>Next</button>
             </nav>
-          </div>
+          </div>}
         </section>
-
-        <footer className={styles.footer}><span>THREE LIVES. ONE CITY.</span><p>Play in person. Check in anywhere.</p><Link href="/">Event station</Link></footer>
       </div>
     </main>
   );

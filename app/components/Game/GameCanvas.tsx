@@ -44,7 +44,6 @@ interface GameCanvasProps {
   gameState: GameStatus;
   setGameState: (status: GameStatus) => void;
   onScoreChange: (score: ScoreState) => void;
-  speedMultiplier: number;
 }
 
 interface ScorePopup {
@@ -55,7 +54,7 @@ interface ScorePopup {
   age: number;
 }
 
-const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onScoreChange, speedMultiplier }) => {
+const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onScoreChange }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const requestRef = useRef<number>(0);
   const frameCountRef = useRef<number>(0);
@@ -77,9 +76,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onScor
   }, []);
   
   // Game Constants
-  const speedRef = useRef(speedMultiplier);
-  speedRef.current = speedMultiplier;
-
   const CONFIG: GameConfig = {
     gravity: 0.66,
     friction: 0.85,
@@ -737,34 +733,28 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onScor
     frameCountRef.current++;
 
     // --- PLAYER PHYSICS ---
-    const spd = speedRef.current;
-    // Gravity scales with sqrt(speed) so jump arcs stay viable at low speeds.
-    // At 0.5x speed, gravity is ~0.71x (not 0.5x), giving more air-time relative
-    // to horizontal movement so the player can still clear gaps.
-    const gravitySpd = Math.sqrt(spd);
     
     // Horizontal Movement
     if (keys['ArrowLeft']) {
-      player.vx -= CONFIG.moveSpeed * spd;
+      player.vx -= CONFIG.moveSpeed;
       player.facing = -1;
     }
     if (keys['ArrowRight']) {
-      player.vx += CONFIG.moveSpeed * spd;
+      player.vx += CONFIG.moveSpeed;
       player.facing = 1;
     }
 
     // Friction & Limits
     player.vx *= CONFIG.friction;
-    if (player.vx > CONFIG.maxSpeed * spd) player.vx = CONFIG.maxSpeed * spd;
-    if (player.vx < -CONFIG.maxSpeed * spd) player.vx = -CONFIG.maxSpeed * spd;
+    if (player.vx > CONFIG.maxSpeed) player.vx = CONFIG.maxSpeed;
+    if (player.vx < -CONFIG.maxSpeed) player.vx = -CONFIG.maxSpeed;
 
     // Gravity
-    player.vy += CONFIG.gravity * gravitySpd;
+    player.vy += CONFIG.gravity;
 
-    // Jumping — jump force scales between sqrt(spd) and spd to preserve
-    // clearance: at low speed the jump is proportionally stronger.
+    // Jumping
     if (keys['Space'] && player.isGrounded) {
-      player.vy = CONFIG.baseJumpForce * ((spd + gravitySpd) / 2);
+      player.vy = CONFIG.baseJumpForce;
       player.isGrounded = false;
       sfxRef.current?.jump();
     }
@@ -776,9 +766,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onScor
     maintainEndlessLevel(player.x);
 
     const autoScrollProgress = Math.min(1, player.x / 18000);
-    const baseAutoScroll = AUTOSCROLL_START_SPEED + (AUTOSCROLL_MAX_SPEED - AUTOSCROLL_START_SPEED) * autoScrollProgress;
-    // Auto-scroll scales with speed so the game stays proportionally fair.
-    const autoScrollSpeed = baseAutoScroll * spd;
+    const autoScrollSpeed = AUTOSCROLL_START_SPEED + (AUTOSCROLL_MAX_SPEED - AUTOSCROLL_START_SPEED) * autoScrollProgress;
     scrollXRef.current += autoScrollSpeed;
 
     // --- MONSTER LOGIC ---
@@ -790,7 +778,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onScor
         return;
       }
 
-      m.x += m.vx * spd;
+      m.x += m.vx;
       // Patrol Logic
       if (m.x <= m.patrolStart) {
         m.x = m.patrolStart;
