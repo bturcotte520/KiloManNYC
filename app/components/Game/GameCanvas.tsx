@@ -23,7 +23,7 @@ const START_PLATFORM_X = 40;
 const START_PLATFORM_Y = GROUND_Y - 40;
 const START_PLATFORM_WIDTH = 520;
 const START_CHUNK_PLATFORM_SHIFT = 430;
-const VEGAS_SCENE_WIDTH = 1400;
+const NYC_SCENE_WIDTH = 1400;
 
 const seededRandom = (seed: number) => {
   const value = Math.sin(seed * 12.9898) * 43758.5453;
@@ -111,7 +111,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onScor
   const scoreRef = useRef<ScoreState>({ current: 0, best: 0, distance: 0 });
   const bonusScoreRef = useRef<number>(0);
   const keysRef = useRef<{ [key: string]: boolean }>({});
-  const logoRef = useRef<HTMLImageElement | null>(null);
   const gameStateRef = useRef<GameStatus>(gameState);
   const setGameStateRef = useRef(setGameState);
   const lastScorePublishFrameRef = useRef<number>(0);
@@ -247,15 +246,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onScor
     monstersRef.current = monstersRef.current.filter(m => m.x + m.w > cutoff);
   };
 
-  // Load Logo
-  useEffect(() => {
-    const img = new Image();
-    img.src = '/KiloLogo.png';
-    img.onload = () => {
-      logoRef.current = img;
-    };
-  }, []);
-
   // Initialize Input Listeners
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -384,226 +374,134 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onScor
     const w = ctx.canvas.width;
     const h = ctx.canvas.height;
 
-    // Sky Gradient
+    // Midnight over Manhattan. Scenery is decorative, never collision geometry.
     const gradient = ctx.createLinearGradient(0, 0, 0, h);
-    gradient.addColorStop(0, '#0f172a'); // Dark Blue/Black
-    gradient.addColorStop(1, '#3b0764'); // Deep Purple
+    gradient.addColorStop(0, '#07111f');
+    gradient.addColorStop(1, '#294458');
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, w, h);
 
-    // Kilo Logo Background
-    if (logoRef.current) {
-      const logo = logoRef.current;
-      const scale = 1.5; // Large
-      const scaledW = logo.width * scale;
-      const scaledH = logo.height * scale;
-      
-      // Center on screen with parallax offset
-      // We want it to stay relatively centered but move slightly to show depth
-      const parallaxX = cameraX * 0.05;
-      const parallaxY = cameraY * 0.05;
-      
-      const x = (w / 2) - (scaledW / 2) - parallaxX;
-      const y = (h / 2) - (scaledH / 2) - parallaxY;
-      
-      ctx.save();
-      ctx.globalAlpha = 0.2; // Subtle background
-      ctx.drawImage(logo, x, y, scaledW, scaledH);
-      ctx.restore();
-    }
-
-    // Parallax Stars/Particles
+    // Stable distant lights avoid frame-to-frame flicker.
     ctx.fillStyle = '#FFF';
     for (let i = 0; i < 50; i++) {
       const x = ((i * 137) - cameraX * 0.1) % w; // Fixed parallax direction
       const finalX = x < 0 ? x + w : x;
       const y = (i * 31) % (h / 2);
-      ctx.globalAlpha = Math.random() * 0.5 + 0.2;
+      ctx.globalAlpha = seededRandom(i + 1) * 0.4 + 0.15;
       ctx.fillRect(finalX, y, 2, 2);
     }
     ctx.globalAlpha = 1.0;
 
-    const drawVegasStrip = (parallax: number, baseY: number, alpha: number) => {
-      const offset = wrapSceneX(cameraX * parallax, VEGAS_SCENE_WIDTH);
+    const drawSkyline = (parallax: number, baseY: number, alpha: number) => {
+      const offset = wrapSceneX(cameraX * parallax, NYC_SCENE_WIDTH);
       ctx.save();
       ctx.globalAlpha = alpha;
 
-      for (let repeat = -1; repeat <= 1; repeat++) {
-        const originX = repeat * VEGAS_SCENE_WIDTH - offset;
+      for (let repeat = -1; repeat <= Math.ceil(w / NYC_SCENE_WIDTH); repeat++) {
+        const originX = repeat * NYC_SCENE_WIDTH - offset;
+        const towers = [
+          { x: 20, width: 130, height: 205 },
+          { x: 175, width: 125, height: 310 },
+          { x: 330, width: 170, height: 235 },
+          { x: 530, width: 110, height: 270 },
+          { x: 670, width: 155, height: 180 },
+          { x: 860, width: 120, height: 345 },
+          { x: 1010, width: 170, height: 240 },
+          { x: 1210, width: 155, height: 195 },
+        ];
 
-        // Layered strip silhouettes with deliberate rooflines instead of loose blocks.
-        ctx.fillStyle = '#0b102f';
-        ctx.fillRect(originX + 58, baseY - 250, 144, 250);
-        ctx.fillRect(originX + 252, baseY - 310, 112, 310);
-        ctx.fillRect(originX + 575, baseY - 266, 176, 266);
-        ctx.fillRect(originX + 1020, baseY - 335, 138, 335);
+        towers.forEach((tower, index) => {
+          const tx = originX + tower.x;
+          const roofY = baseY - tower.height;
+          ctx.fillStyle = index % 2 ? '#101e2b' : '#152635';
+          ctx.fillRect(tx, roofY, tower.width, tower.height);
 
-        ctx.fillStyle = '#15115a';
-        ctx.beginPath();
-        ctx.moveTo(originX + 58, baseY - 250);
-        ctx.lineTo(originX + 130, baseY - 292);
-        ctx.lineTo(originX + 202, baseY - 250);
-        ctx.closePath();
-        ctx.fill();
-        ctx.fillRect(originX + 285, baseY - 354, 46, 44);
-        ctx.beginPath();
-        ctx.moveTo(originX + 575, baseY - 266);
-        ctx.lineTo(originX + 663, baseY - 318);
-        ctx.lineTo(originX + 751, baseY - 266);
-        ctx.closePath();
-        ctx.fill();
-        ctx.fillRect(originX + 1057, baseY - 382, 64, 47);
+          if (index === 1 || index === 5) {
+            // Stepped crowns and antennae evoke the Empire State skyline.
+            ctx.fillRect(tx + 20, roofY - 28, tower.width - 40, 28);
+            ctx.fillRect(tx + 38, roofY - 48, tower.width - 76, 20);
+            ctx.fillRect(tx + tower.width / 2 - 3, roofY - 90, 6, 42);
+            ctx.fillStyle = '#ebd9a6';
+            ctx.fillRect(tx + tower.width / 2 - 2, roofY - 93, 4, 4);
+          }
 
-        ctx.strokeStyle = 'rgba(56, 189, 248, 0.55)';
-        ctx.lineWidth = 2;
-        [58, 252, 575, 1020].forEach((towerX, towerIndex) => {
-          const towerW = [144, 112, 176, 138][towerIndex];
-          const towerH = [250, 310, 266, 335][towerIndex];
-          for (let stripe = 1; stripe < 4; stripe++) {
-            const sx = originX + towerX + (towerW / 4) * stripe;
+          ctx.fillStyle = '#9f956b';
+          for (let row = 0; row < Math.floor(tower.height / 25) - 1; row++) {
+            for (let col = 0; col < Math.floor(tower.width / 22) - 1; col++) {
+              if (seededRandom(index * 100 + row * 9 + col) > 0.38) {
+                ctx.fillRect(tx + 14 + col * 22, roofY + 16 + row * 25, 6, 9);
+              }
+            }
+          }
+
+          if (index === 2 || index === 7) {
+            ctx.fillStyle = '#0a1620';
+            ctx.fillRect(tx + 44, roofY - 38, 38, 30);
             ctx.beginPath();
-            ctx.moveTo(sx, baseY - towerH + 12);
-            ctx.lineTo(sx, baseY - 8);
-            ctx.stroke();
+            ctx.moveTo(tx + 40, roofY - 38);
+            ctx.lineTo(tx + 63, roofY - 51);
+            ctx.lineTo(tx + 86, roofY - 38);
+            ctx.fill();
+            ctx.fillRect(tx + 47, roofY - 8, 4, 8);
+            ctx.fillRect(tx + 75, roofY - 8, 4, 8);
           }
         });
 
-        ctx.fillStyle = 'rgba(250, 204, 21, 0.62)';
-        for (let i = 0; i < 30; i++) {
-          ctx.fillRect(originX + 82 + (i % 4) * 28, baseY - 220 + Math.floor(i / 4) * 28, 8, 12);
-          ctx.fillRect(originX + 278 + (i % 3) * 28, baseY - 280 + Math.floor(i / 3) * 28, 8, 11);
-          ctx.fillRect(originX + 606 + (i % 5) * 28, baseY - 232 + Math.floor(i / 5) * 30, 7, 12);
-          ctx.fillRect(originX + 1048 + (i % 4) * 24, baseY - 305 + Math.floor(i / 4) * 30, 7, 12);
+        ctx.fillStyle = '#09151c';
+        ctx.fillRect(originX, baseY - 12, NYC_SCENE_WIDTH, 20);
+        ctx.fillStyle = '#38505a';
+        for (let column = 0; column < 8; column++) {
+          ctx.fillRect(originX + column * 180 + 40, baseY + 8, 10, 100);
         }
 
-        // Welcome sign, with posts and starburst top.
-        ctx.strokeStyle = '#7f1d1d';
-        ctx.lineWidth = 5;
-        ctx.beginPath();
-        ctx.moveTo(originX + 405, baseY - 42);
-        ctx.lineTo(originX + 405, baseY);
-        ctx.moveTo(originX + 455, baseY - 42);
-        ctx.lineTo(originX + 455, baseY);
-        ctx.stroke();
-        ctx.fillStyle = '#fef3c7';
-        ctx.strokeStyle = '#ef4444';
-        ctx.lineWidth = 4;
-        ctx.beginPath();
-        ctx.moveTo(originX + 430, baseY - 198);
-        ctx.lineTo(originX + 535, baseY - 166);
-        ctx.lineTo(originX + 535, baseY - 80);
-        ctx.lineTo(originX + 430, baseY - 42);
-        ctx.lineTo(originX + 325, baseY - 80);
-        ctx.lineTo(originX + 325, baseY - 166);
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-        ctx.fillStyle = '#facc15';
-        ctx.beginPath();
-        for (let point = 0; point < 16; point++) {
-          const radius = point % 2 === 0 ? 28 : 10;
-          const angle = (Math.PI * 2 * point) / 16;
-          const px = originX + 430 + Math.cos(angle) * radius;
-          const py = baseY - 214 + Math.sin(angle) * radius;
-          if (point === 0) ctx.moveTo(px, py);
-          else ctx.lineTo(px, py);
+        // Elevated subway and station sign, behind the playable rooftops.
+        ctx.fillStyle = '#84949a';
+        ctx.fillRect(originX + 390, baseY - 66, 320, 52);
+        ctx.fillStyle = '#253747';
+        for (let window = 0; window < 8; window++) {
+          ctx.fillRect(originX + 405 + window * 37, baseY - 55, 25, 21);
         }
-        ctx.closePath();
-        ctx.fill();
-        ctx.fillStyle = '#7f1d1d';
-        ctx.font = 'bold 16px monospace';
-        ctx.textAlign = 'center';
-        ctx.fillText('WELCOME', originX + 430, baseY - 154);
-        ctx.fillText('TO KILO', originX + 430, baseY - 124);
-        ctx.fillText('VEGAS', originX + 430, baseY - 94);
-
-        // Casino neon signs with framed detail.
-        ctx.fillStyle = '#ec4899';
-        ctx.shadowColor = '#ec4899';
-        ctx.shadowBlur = 16;
-        ctx.fillRect(originX + 792, baseY - 178, 182, 96);
-        ctx.fillStyle = '#0f172a';
-        ctx.fillRect(originX + 804, baseY - 166, 158, 72);
-        ctx.fillStyle = '#facc15';
-        ctx.font = 'bold 24px monospace';
-        ctx.fillText('SLOTS', originX + 883, baseY - 124);
-        ctx.fillStyle = '#fef3c7';
-        ctx.font = 'bold 12px monospace';
-        ctx.fillText('OPEN 24H', originX + 883, baseY - 103);
-
-        ctx.shadowColor = '#38bdf8';
-        ctx.shadowBlur = 18;
-        ctx.strokeStyle = '#38bdf8';
-        ctx.lineWidth = 5;
-        ctx.beginPath();
-        ctx.arc(originX + 1240, baseY - 158, 58, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.fillStyle = '#bfdbfe';
-        ctx.font = 'bold 24px monospace';
-        ctx.fillText('777', originX + 1240, baseY - 150);
-        ctx.font = 'bold 10px monospace';
-        ctx.fillText('LUCKY', originX + 1240, baseY - 127);
-        ctx.shadowBlur = 0;
-      }
-
-      // UFO with tractor beam in place of the old spotlight.
-      const ufoX = wrapSceneX(cameraX * 0.06 + frameCountRef.current * 0.85, w + 360) - 180;
-      const ufoY = Math.max(72, baseY - 380 + Math.sin(frameCountRef.current * 0.025) * 26);
-      const beam = ctx.createLinearGradient(ufoX, ufoY + 18, ufoX, baseY + 40);
-      beam.addColorStop(0, 'rgba(125, 249, 255, 0.28)');
-      beam.addColorStop(0.55, 'rgba(125, 249, 255, 0.09)');
-      beam.addColorStop(1, 'rgba(125, 249, 255, 0)');
-      ctx.fillStyle = beam;
-      ctx.beginPath();
-      ctx.moveTo(ufoX - 36, ufoY + 18);
-      ctx.lineTo(ufoX + 36, ufoY + 18);
-      ctx.lineTo(ufoX + 122, baseY + 40);
-      ctx.lineTo(ufoX - 122, baseY + 40);
-      ctx.closePath();
-      ctx.fill();
-      ctx.fillStyle = '#94a3b8';
-      ctx.beginPath();
-      ctx.ellipse(ufoX, ufoY, 70, 18, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#0f172a';
-      ctx.beginPath();
-      ctx.ellipse(ufoX, ufoY - 10, 34, 18, 0, Math.PI, 0);
-      ctx.fill();
-      ctx.fillStyle = '#67e8f9';
-      for (let light = -2; light <= 2; light++) {
-        ctx.beginPath();
-        ctx.arc(ufoX + light * 22, ufoY + 8, 4, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.fillStyle = '#efb72b';
+        ctx.fillRect(originX + 390, baseY - 26, 320, 4);
+        ctx.fillStyle = '#080e13';
+        ctx.fillRect(originX + 1020, baseY - 130, 240, 72);
+        ctx.fillStyle = '#f1efe6';
+        ctx.fillRect(originX + 1030, baseY - 122, 220, 2);
+        ctx.font = 'bold 20px Arial, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText('42 St - New York', originX + 1034, baseY - 94);
+        ctx.font = '12px Arial, sans-serif';
+        ctx.fillText('Uptown & Downtown', originX + 1034, baseY - 73);
       }
 
       ctx.restore();
     };
 
-    drawVegasStrip(0.16, h - 82 - cameraY * 0.05, 0.9);
-
-    // Parallax Mountains (Far)
-    ctx.fillStyle = '#1e1b4b'; // Dark Indigo
-    ctx.beginPath();
-    ctx.moveTo(0, h);
-    for (let i = 0; i <= w; i += 100) {
-      const offset = (i + cameraX * 0.2);
-      const height = 100 + Math.sin(offset * 0.01) * 50;
-      ctx.lineTo(i, h - height);
+    const streetY = h - 72 - cameraY * 0.05;
+    drawSkyline(0.16, streetY - 30, 0.9);
+    ctx.fillStyle = '#101920';
+    ctx.fillRect(0, streetY, w, h - streetY);
+    ctx.fillStyle = '#7f785c';
+    for (let laneX = -wrapSceneX(cameraX * 0.3, 120); laneX < w; laneX += 120) {
+      ctx.fillRect(laneX, streetY + 42, 54, 3);
     }
-    ctx.lineTo(w, h);
-    ctx.fill();
 
-    // Parallax Hills (Near)
-    ctx.fillStyle = '#312e81'; // Indigo
-    ctx.beginPath();
-    ctx.moveTo(0, h);
-    for (let i = 0; i <= w; i += 50) {
-      const offset = (i + cameraX * 0.5);
-      const height = 50 + Math.sin(offset * 0.02) * 30;
-      ctx.lineTo(i, h - height);
+    const taxiX = wrapSceneX(frameCountRef.current * 1.2 - cameraX * 0.3, w + 220) - 110;
+    ctx.fillStyle = '#eebc32';
+    ctx.fillRect(taxiX, streetY + 12, 92, 23);
+    ctx.fillRect(taxiX + 20, streetY - 5, 48, 20);
+    ctx.fillStyle = '#263b47';
+    ctx.fillRect(taxiX + 24, streetY - 1, 17, 13);
+    ctx.fillRect(taxiX + 45, streetY - 1, 18, 13);
+    ctx.fillStyle = '#f8e4a2';
+    ctx.fillRect(taxiX + 36, streetY - 11, 18, 6);
+    ctx.fillStyle = '#080e13';
+    ctx.fillRect(taxiX + 30, streetY + 18, 34, 4);
+    for (const wheelX of [18, 74]) {
+      ctx.beginPath();
+      ctx.arc(taxiX + wheelX, streetY + 35, 9, 0, Math.PI * 2);
+      ctx.fill();
     }
-    ctx.lineTo(w, h);
-    ctx.fill();
   };
 
   const drawPlatform = (ctx: CanvasRenderingContext2D, entity: LevelEntity, cameraX: number, cameraY: number) => {
@@ -613,23 +511,29 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onScor
     const visualHeight = Math.max(entity.h, ctx.canvas.height - y + 80);
     if (x + entity.w < -80 || x > ctx.canvas.width + 80 || y > ctx.canvas.height + 80) return;
     
-    // 3D Effect: Top Face
-    ctx.fillStyle = '#fbbf24'; // Amber 400 (Light Top)
+    // Yellow platform edges keep the collision surface easy to read.
+    ctx.fillStyle = '#fbbf24';
     ctx.fillRect(x, y, entity.w, 5);
 
     // Front Face
-    ctx.fillStyle = isGround ? '#854d0e' : '#b45309';
+    ctx.fillStyle = isGround ? '#26333b' : '#344550';
     ctx.fillRect(x, y + 5, entity.w, visualHeight - 5);
 
     if (isGround || visualHeight > entity.h) {
-      ctx.fillStyle = 'rgba(120, 53, 15, 0.45)';
+      ctx.fillStyle = 'rgba(9, 20, 28, 0.5)';
       for (let dirtY = y + 45; dirtY < y + Math.min(visualHeight, ctx.canvas.height - y + 120); dirtY += 55) {
         ctx.fillRect(x + 12, dirtY, entity.w - 24, 3);
+      }
+      ctx.fillStyle = '#83908a';
+      for (let windowY = y + 28; windowY < ctx.canvas.height; windowY += 55) {
+        for (let windowX = x + 20; windowX < x + entity.w - 20; windowX += 32) {
+          ctx.fillRect(windowX, windowY, 10, 14);
+        }
       }
     }
 
     // Border/Detail
-    ctx.strokeStyle = '#78350f';
+    ctx.strokeStyle = '#101c25';
     ctx.lineWidth = 2;
     ctx.strokeRect(x, y, entity.w, visualHeight);
   };
@@ -645,7 +549,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onScor
 
     ctx.save();
     ctx.fillStyle = '#facc15';
-    ctx.strokeStyle = '#7f1d1d';
+    ctx.strokeStyle = '#101c25';
     ctx.lineWidth = 6;
     ctx.shadowColor = 'rgba(250, 204, 21, 0.85)';
     ctx.shadowBlur = 22;
@@ -689,7 +593,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onScor
     // Animation Offset
     const bob = Math.sin(frameCountRef.current * 0.2) * (Math.abs(p.vx) > 0.1 ? 3 : 1);
 
-    // Black silhouette pass for readability against neon backgrounds.
+    // Black silhouette pass for readability against the skyline.
     const legOffset = Math.sin(frameCountRef.current * 0.4) * 10 * (Math.abs(p.vx) > 0.1 ? 1 : 0);
     ctx.fillStyle = '#050505';
     ctx.fillRect(cx - 10 + legOffset, y + 28, 10, 24);
@@ -721,7 +625,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onScor
     ctx.fillRect(cx + eyeDir - 2, y + 8 + bob, 4, 4);
 
     const hatY = y + bob;
-    ctx.fillStyle = '#14532d';
+    ctx.fillStyle = '#112d4b';
     ctx.beginPath();
     ctx.ellipse(cx, hatY + 5, 18, 5.5, 0, 0, Math.PI * 2);
     ctx.fill();
@@ -729,19 +633,19 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onScor
     ctx.ellipse(cx, hatY - 4, 13, 11, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.fillStyle = '#31A824';
+    ctx.fillStyle = '#245d8c';
     ctx.beginPath();
     ctx.ellipse(cx, hatY + 5, 16, 4, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = '#43B02A';
+    ctx.fillStyle = '#337aad';
     ctx.beginPath();
     ctx.ellipse(cx, hatY - 5, 11, 10, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.fillStyle = '#166534';
+    ctx.fillStyle = '#102d48';
     ctx.fillRect(cx - 11, hatY + 1, 22, 3);
 
-    ctx.fillStyle = 'rgba(187, 247, 208, 0.4)';
+    ctx.fillStyle = 'rgba(203, 231, 247, 0.4)';
     ctx.beginPath();
     ctx.ellipse(cx - 3, hatY - 9, 4, 2.2, -0.4, 0, Math.PI * 2);
     ctx.fill();
@@ -781,33 +685,19 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onScor
     const y = entity.y + entity.h / 2 - cameraY + Math.sin((frameCountRef.current + entity.x) * 0.08) * 4;
     const radius = entity.w / 2;
     const value = entity.value ?? 5;
-    const chipColor = value >= 25 ? '#a855f7' : value >= 20 ? '#3b82f6' : value >= 15 ? '#22c55e' : value >= 10 ? '#f59e0b' : '#ef4444';
+    const routeColor = value >= 25 ? '#b933ad' : value >= 20 ? '#1764b0' : value >= 15 ? '#00854a' : value >= 10 ? '#f7b928' : '#d52b35';
 
     ctx.save();
-    ctx.fillStyle = chipColor;
-    ctx.strokeStyle = '#fef3c7';
-    ctx.lineWidth = 4;
+    ctx.fillStyle = routeColor;
+    ctx.strokeStyle = '#f1efe6';
+    ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.arc(x, y, radius, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
 
-    ctx.strokeStyle = '#fef3c7';
-    ctx.lineWidth = 3;
-    for (let i = 0; i < 8; i++) {
-      const angle = (Math.PI * 2 * i) / 8;
-      ctx.beginPath();
-      ctx.moveTo(x + Math.cos(angle) * (radius - 7), y + Math.sin(angle) * (radius - 7));
-      ctx.lineTo(x + Math.cos(angle) * radius, y + Math.sin(angle) * radius);
-      ctx.stroke();
-    }
-
-    ctx.fillStyle = '#fef3c7';
-    ctx.beginPath();
-    ctx.arc(x, y, radius * 0.42, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#7f1d1d';
-    ctx.font = 'bold 13px monospace';
+    ctx.fillStyle = value === 10 ? '#101820' : '#ffffff';
+    ctx.font = 'bold 14px Arial, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(String(value), x, y + 1);

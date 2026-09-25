@@ -8,8 +8,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Kilo Man",
-  description: "A thrilling platformer game",
+  title: "Kilo Man NYC | City Arcade",
+  description: "An NYC arcade run. Play at the event and follow the live scoreboard from anywhere.",
   icons: {
     icon: "/KiloLogo.png",
   },

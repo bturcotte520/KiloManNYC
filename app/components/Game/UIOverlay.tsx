@@ -7,7 +7,6 @@ const MENU_EVENT_NAME = 'kiloman:menu-action';
 const MENU_NAV_EVENT_NAME = 'kiloman:menu-nav';
 const NAME_MAX_LENGTH = 20;
 const DEATH_ACTION_DELAY_MS = 900;
-const VEGAS_BULB_COUNT = 40;
 
 type AdminActionType = 'archive' | 'purge';
 
@@ -32,35 +31,6 @@ interface UIOverlayProps {
   speedMultiplier: number;
   onSpeedChange: (value: number) => void;
 }
-
-interface VegasBulbRingProps {
-  reverse?: boolean;
-  startOffset?: number;
-}
-
-const VegasBulbRing: React.FC<VegasBulbRingProps> = ({ reverse = false, startOffset = 0 }) => (
-  <div className="vegas-bulb-ring" aria-hidden="true">
-    {Array.from({ length: VEGAS_BULB_COUNT }, (_, index) => {
-      const progress = index / VEGAS_BULB_COUNT;
-      const chaseIndex = reverse
-        ? (VEGAS_BULB_COUNT - index + startOffset) % VEGAS_BULB_COUNT
-        : (index + startOffset) % VEGAS_BULB_COUNT;
-      let style: React.CSSProperties;
-
-      if (progress < 0.25) {
-        style = { left: `${progress * 4 * 100}%`, top: '0%' };
-      } else if (progress < 0.5) {
-        style = { left: '100%', top: `${(progress - 0.25) * 4 * 100}%` };
-      } else if (progress < 0.75) {
-        style = { left: `${(1 - (progress - 0.5) * 4) * 100}%`, top: '100%' };
-      } else {
-        style = { left: '0%', top: `${(1 - (progress - 0.75) * 4) * 100}%` };
-      }
-
-      return <span key={index} className="vegas-bulb" style={{ ...style, '--bulb-index': chaseIndex } as React.CSSProperties} />;
-    })}
-  </div>
-);
 
 interface ConfirmDialogProps {
   title: string;
@@ -279,8 +249,8 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
     <div className="absolute inset-0 pointer-events-none flex flex-col justify-between p-6 arcade-root">
       <div className="flex justify-between items-start pointer-events-auto gap-4">
         <div className="arcade-panel p-5 text-yellow-300 min-w-72">
-          <div className="anaconda-logo-row mb-3">
-            <Image src="/anaconda-logo.svg" alt="Anaconda" width={42} height={42} className="anaconda-logo anaconda-logo--hud" />
+          <div className="nyc-route-row mb-3">
+            <span className="nyc-route-badge" aria-label="K route">K</span>
             <h1 className="arcade-title text-3xl">KILO MAN</h1>
           </div>
           <div className="arcade-stat-grid">
@@ -339,19 +309,21 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
       )}
 
       {gameState === 'start' && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/95 pointer-events-auto overflow-y-auto py-8">
-          <div className="max-w-6xl w-full mx-4">
-            <div className="anaconda-logo-home mb-4">
-              <Image src="/anaconda-logo.svg" alt="Anaconda" width={96} height={96} className="anaconda-logo anaconda-logo--home" />
+        <div className="absolute inset-0 pointer-events-auto nyc-menu-scroll">
+          <div className="max-w-6xl w-full nyc-menu-content">
+            <div className="nyc-route-row nyc-route-row--home mb-4" aria-label="New York City routes">
+              <span className="nyc-route-badge">N</span>
+              <span className="nyc-route-badge nyc-route-badge--blue">Y</span>
+              <span className="nyc-route-badge nyc-route-badge--orange">C</span>
             </div>
-            <div className="vegas-title-wrap mb-7 text-center">
-              <h1 className="vegas-title-main">KILO MAN</h1>
-              <div className="vegas-title-script">in Vegas</div>
+            <div className="nyc-title-wrap mb-7 text-center">
+              <p className="nyc-station-label">UPTOWN / DOWNTOWN / ALL NIGHT</p>
+              <h1 className="nyc-title-main">KILO MAN</h1>
+              <div className="nyc-title-edition">NEW YORK CITY EDITION</div>
             </div>
 
             <div className="grid lg:grid-cols-[minmax(0,1fr)_460px] gap-6">
-              <div className="vegas-bulb-frame">
-                <VegasBulbRing startOffset={VEGAS_BULB_COUNT / 4} />
+              <div className="nyc-station-frame">
                 <div className="arcade-panel arcade-menu p-8 text-center h-full">
                   <p className="arcade-copy text-2xl mb-4">ENTER YOUR CHARACTER NAME</p>
                   <p className="arcade-help mb-6">Up to {NAME_MAX_LENGTH} characters</p>
@@ -423,7 +395,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
                       className="arcade-slider w-full"
                       aria-label="Game speed"
                     />
-                    <div className="flex justify-between text-xs arcade-help">
+                    <div className="flex justify-between w-full text-xs arcade-help">
                       <span>SLOW</span>
                       <span>FAST</span>
                     </div>
@@ -435,10 +407,13 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
                 </div>
               </div>
 
-              <div className="vegas-bulb-frame">
-                <VegasBulbRing reverse startOffset={VEGAS_BULB_COUNT / 2} />
+              <div className="nyc-station-frame">
                 <div className="arcade-panel p-6 text-yellow-300 h-full">
                   <h2 className="arcade-title text-4xl mb-5 text-center">TOP SCORES</h2>
+                  <a href="/scoreboard" target="_blank" rel="noopener noreferrer" className="nyc-scoreboard-link">
+                    LIVE SCOREBOARD <span aria-hidden="true">↗</span>
+                    <span className="sr-only"> (opens in a new tab)</span>
+                  </a>
                   {adminError && <p className="arcade-help text-center text-red-300 mb-4">{adminError}</p>}
                   {leaderboard.length === 0 ? (
                     <p className="arcade-copy text-center">NO SCORES YET</p>
@@ -567,7 +542,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
         {muted ? 'UNMUTE' : 'MUTE'}
       </button>
 
-      <div className="fixed bottom-3 left-3 pointer-events-auto z-50 arcade-speed-hud">
+      {gameState !== 'start' && <div className="fixed bottom-3 left-3 pointer-events-auto z-50 arcade-speed-hud">
         <label className="arcade-help text-xs block mb-1">{speedMultiplier.toFixed(1)}x</label>
         <input
           type="range"
@@ -579,11 +554,11 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
           className="arcade-slider arcade-slider--small"
           aria-label="Game speed"
         />
-      </div>
+      </div>}
 
-      <p className="absolute bottom-2 left-20 text-gray-500 text-xs pointer-events-none select-none">
+      {gameState !== 'start' && <p className="absolute bottom-2 left-28 text-gray-500 text-xs pointer-events-none select-none">
         qq to quit
-      </p>
+      </p>}
     </div>
   );
 };

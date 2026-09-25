@@ -21,10 +21,9 @@
 
 html,
 body {
-  height: 100%;
+  min-height: 100%;
   margin: 0;
   padding: 0;
-  overflow: hidden;
 }
 
 body {
@@ -105,116 +104,123 @@ body {
 
 .arcade-root {
   font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
-  letter-spacing: 0.08em;
-  text-shadow: 0 3px 0 #000, 0 0 18px rgba(234, 179, 8, 0.55);
+  letter-spacing: 0.04em;
+  color: #f4f2e9;
 }
 
-.anaconda-logo-row {
+.nyc-route-row {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-.anaconda-logo-home {
-  display: flex;
+.nyc-route-row--home {
   justify-content: center;
 }
 
-.anaconda-logo {
-  display: block;
-  height: auto;
-  filter: drop-shadow(0 0 10px rgba(67, 176, 42, 0.55));
-}
-
-.anaconda-logo--hud {
+.nyc-route-badge {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
   width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #f5c344;
+  color: #101820;
+  font: 900 26px/1 Arial, Helvetica, sans-serif;
+  letter-spacing: -0.04em;
 }
 
-.anaconda-logo--home {
-  width: 96px;
+.nyc-route-badge--blue {
+  background: #1764b0;
+  color: #fff;
+}
+
+.nyc-route-badge--orange {
+  background: #e76727;
+  color: #fff;
 }
 
 .arcade-panel {
-  border: 4px solid #facc15;
-  border-radius: 18px;
-  background:
-    linear-gradient(rgba(250, 204, 21, 0.08) 50%, rgba(0, 0, 0, 0.08) 50%),
-    radial-gradient(circle at top, rgba(127, 29, 29, 0.55), rgba(0, 0, 0, 0.95) 62%);
-  background-size: 100% 8px, 100% 100%;
-  box-shadow: 0 0 0 4px #7f1d1d, 0 0 30px rgba(250, 204, 21, 0.35), inset 0 0 26px rgba(250, 204, 21, 0.18);
+  min-width: 0;
+  border: 1px solid #48545c;
+  border-top: 4px solid #f5c344;
+  border-radius: 3px;
+  background: #10181f;
+  box-shadow: 0 8px 0 rgb(0 0 0 / 20%);
 }
 
-.vegas-title-wrap {
-  position: relative;
+.nyc-menu-scroll {
   display: flex;
-  justify-content: center;
-  align-items: flex-end;
-  min-height: 150px;
-  filter: drop-shadow(0 10px 0 #020617) drop-shadow(0 0 36px rgba(250, 204, 21, 0.55));
+  flex-direction: column;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: max(52px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(80px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  background: #080e14;
+  background-image: linear-gradient(90deg, transparent calc(100% - 1px), #18242e 1px), linear-gradient(transparent calc(100% - 1px), #18242e 1px);
+  background-size: 80px 80px;
 }
 
-.vegas-title-main {
-  color: #facc15;
+.nyc-menu-content {
+  flex: 0 0 auto;
+  margin: auto;
+}
+
+.nyc-title-wrap {
+  color: #f4f2e9;
+}
+
+.nyc-title-main {
   font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
-  font-size: clamp(76px, 13vw, 168px);
-  line-height: 0.78;
-  letter-spacing: 0.07em;
-  -webkit-text-stroke: clamp(3px, 0.45vw, 7px) #7f1d1d;
-  text-shadow: 0 6px 0 #450a0a, 0 0 28px rgba(250, 204, 21, 0.95), 0 0 70px rgba(220, 38, 38, 0.75);
+  font-size: clamp(64px, 12vw, 144px);
+  line-height: 1;
+  letter-spacing: -0.025em;
 }
 
-.vegas-title-script {
-  position: absolute;
-  right: clamp(8px, 10vw, 120px);
-  bottom: -8px;
-  color: #fef3c7;
-  font-family: "Brush Script MT", "Apple Chancery", "Segoe Script", cursive;
-  font-size: clamp(38px, 6vw, 82px);
-  font-style: italic;
-  letter-spacing: 0.01em;
-  transform: rotate(-8deg);
-  -webkit-text-stroke: 2px #be123c;
-  text-shadow: 0 3px 0 #7f1d1d, 0 0 22px rgba(244, 63, 94, 0.95), 0 0 44px rgba(250, 204, 21, 0.75);
+.nyc-title-edition {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 8px 14px;
+  background: #f5c344;
+  color: #101820;
+  font: 800 clamp(12px, 2vw, 17px)/1.2 Arial, Helvetica, sans-serif;
+  letter-spacing: 0.16em;
 }
 
-.vegas-bulb-frame {
-  position: relative;
-  padding: 20px;
-  border-radius: 28px;
-  background: #450a0a;
-  box-shadow: 0 0 34px rgba(250, 204, 21, 0.28), inset 0 0 18px rgba(0, 0, 0, 0.7);
+.nyc-station-label {
+  margin-bottom: 8px;
+  color: #a4b3bf;
+  font: 700 11px/1.5 ui-monospace, monospace;
+  letter-spacing: 0.18em;
 }
 
-.vegas-bulb-ring {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 2;
+.nyc-station-frame {
+  min-width: 0;
 }
 
-.vegas-bulb {
-  --bulb-size: 18px;
-  position: absolute;
-  width: var(--bulb-size);
-  height: var(--bulb-size);
-  border-radius: 9999px;
-  background: radial-gradient(circle at 35% 30%, #fff8bf 0 14%, #ca8a04 22% 52%, #78350f 70%);
-  box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.75), 0 0 0 2px #78350f;
-  opacity: 0.52;
-  transform: translate(-50%, -50%);
-  animation: vegas-single-bulb-chase 2s steps(1, end) infinite;
-  animation-delay: calc(var(--bulb-index) * -50ms);
+.nyc-scoreboard-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  margin-bottom: 24px;
+  padding: 10px 0;
+  border-block: 1px solid #48545c;
+  color: #f4f2e9;
+  font: 700 13px/1.4 ui-monospace, monospace;
+  text-decoration: underline;
+  text-underline-offset: 4px;
 }
 
 .arcade-menu {
-  color: #fde68a;
+  color: #f4f2e9;
 }
 
 .arcade-title {
   line-height: 0.92;
   color: #facc15;
   text-transform: uppercase;
-  -webkit-text-stroke: 2px #7f1d1d;
 }
 
 .arcade-copy,
@@ -223,7 +229,6 @@ body {
 .arcade-stat-grid {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   letter-spacing: 0.03em;
-  text-shadow: 0 0 12px rgba(250, 204, 21, 0.45);
 }
 
 .arcade-copy {
@@ -233,8 +238,8 @@ body {
 
 .arcade-help,
 .arcade-instructions {
-  color: #fde047;
-  font-weight: 900;
+  color: #bdcbd5;
+  font-weight: 700;
 }
 
 .arcade-stat-grid {
@@ -245,25 +250,24 @@ body {
 }
 
 .arcade-button {
-  min-width: 240px;
-  border: 4px solid #fef3c7;
-  border-radius: 9999px;
-  background: linear-gradient(#fde047, #f59e0b);
+  min-width: min(240px, 100%);
+  max-width: 100%;
+  border: 2px solid #f5c344;
+  border-radius: 3px;
+  background: #f5c344;
   color: #111827;
   padding: 16px 34px;
   font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
   font-size: 28px;
   letter-spacing: 0.09em;
-  text-shadow: 0 2px 0 rgba(255, 255, 255, 0.35);
-  box-shadow: 0 8px 0 #7f1d1d, 0 0 22px rgba(250, 204, 21, 0.55);
+  box-shadow: 0 5px 0 #8c681e;
   transition: transform 120ms ease, box-shadow 120ms ease;
 }
 
 .arcade-button:hover,
 .arcade-button:focus-visible {
   transform: translateY(2px);
-  box-shadow: 0 5px 0 #7f1d1d, 0 0 30px rgba(250, 204, 21, 0.8);
-  outline: none;
+  box-shadow: 0 3px 0 #8c681e;
 }
 
 .arcade-initial {
@@ -290,7 +294,7 @@ body {
   grid-template-columns: 40px minmax(0, 1fr) auto auto;
   gap: 10px;
   align-items: center;
-  border-bottom: 2px dashed rgba(250, 204, 21, 0.45);
+  border-bottom: 1px solid #34434e;
   padding-bottom: 8px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   font-size: 22px;
@@ -307,8 +311,8 @@ body {
 .arcade-delete-button,
 .arcade-control-toggle {
   border: 2px solid #facc15;
-  border-radius: 9999px;
-  background: rgba(127, 29, 29, 0.75);
+  border-radius: 3px;
+  background: #1d2e3c;
   color: #fef3c7;
   padding: 8px 16px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
@@ -335,7 +339,6 @@ body {
 .arcade-control-toggle--active {
   background: #facc15;
   color: #111827;
-  box-shadow: 0 0 18px rgba(250, 204, 21, 0.75);
 }
 
 .arcade-delete-button {
@@ -430,7 +433,7 @@ body {
 .arcade-admin-link {
   border: none;
   background: none;
-  color: rgba(250, 204, 21, 0.35);
+  color: #9caebc;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   font-size: 12px;
   letter-spacing: 0.12em;
@@ -444,19 +447,19 @@ body {
 
 .arcade-admin-input {
   border: 2px solid #facc15;
-  border-radius: 10px;
+  border-radius: 3px;
+  max-width: 100%;
   background: #020617;
   color: #fef3c7;
   padding: 10px 12px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   font-weight: 900;
   text-align: center;
-  outline: none;
 }
 
 .arcade-score-card {
-  border: 3px dashed rgba(250, 204, 21, 0.7);
-  border-radius: 14px;
+  border: 1px solid #48545c;
+  border-radius: 3px;
   padding: 18px;
   background: rgba(0, 0, 0, 0.45);
 }
@@ -470,9 +473,56 @@ body {
   font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
   font-size: clamp(120px, 24vw, 220px);
   line-height: 0.9;
-  -webkit-text-stroke: 5px #7f1d1d;
+  -webkit-text-stroke: 3px #101820;
   animation: arcade-countdown-pop 900ms ease-out both;
   text-shadow: 0 8px 0 #000, 0 0 42px rgba(250, 204, 21, 0.85);
+}
+
+.arcade-root :is(button, a, input):focus-visible {
+  outline: 3px solid #f4f2e9;
+  outline-offset: 4px;
+}
+
+.arcade-root [role="dialog"] > .arcade-panel {
+  max-height: calc(100% - 32px);
+  overflow-y: auto;
+}
+
+.arcade-root [role="dialog"] .flex,
+.nyc-menu-content .flex.gap-2 {
+  flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+  .arcade-root {
+    padding: 12px;
+  }
+
+  .arcade-root > .flex > .arcade-panel {
+    padding: 12px;
+    max-width: calc(100% - 76px);
+  }
+
+  .arcade-stat-grid {
+    font-size: 12px;
+    overflow-wrap: anywhere;
+  }
+
+  .nyc-station-frame > .arcade-panel {
+    padding: 24px 16px;
+  }
+
+  .arcade-leader-row {
+    grid-template-columns: 24px minmax(0, 1fr) auto auto;
+    gap: 6px;
+    font-size: 15px;
+  }
+
+  .arcade-root [role="dialog"] .arcade-button {
+    min-width: 0;
+    padding-inline: 18px;
+    font-size: 20px;
+  }
 }
 
 @keyframes arcade-active-pulse {
@@ -481,19 +531,6 @@ body {
   }
   50% {
     box-shadow: inset 0 0 16px rgba(250, 204, 21, 0.2), 0 0 14px rgba(250, 204, 21, 0.35);
-  }
-}
-
-@keyframes vegas-single-bulb-chase {
-  0%, 2.5% {
-    opacity: 1;
-    background: radial-gradient(circle at 35% 30%, #ffffff 0 20%, #fde68a 26% 48%, #f59e0b 62%);
-    box-shadow: 0 0 0 2px #fef3c7, 0 0 18px rgba(250, 204, 21, 1), 0 0 34px rgba(250, 204, 21, 0.75);
-  }
-  2.6%, 100% {
-    opacity: 0.52;
-    background: radial-gradient(circle at 35% 30%, #fff8bf 0 14%, #ca8a04 22% 52%, #78350f 70%);
-    box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.75), 0 0 0 2px #78350f;
   }
 }
 
